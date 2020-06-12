@@ -20,16 +20,15 @@ app.get('/games', function (req, res) {
 })
 
 app.get('/game/:gameName/mod/:modName', function (req, res) {
-    let rawdata = fs.readFileSync(filesFolder + req.params.gameName + '/' + req.params.modName + "/list.json");
+    let rawdata = fs.readFileSync(path.join(filesFolder, req.params.gameName, req.params.modName, "list.json"));
     let list = JSON.parse(rawdata);
 
-    const mods = fs.readdirSync(filesFolder + req.params.gameName + '/' + req.params.modName);
+    const mods = fs.readdirSync(path.join(filesFolder, req.params.gameName, req.params.modName));
     mods.sort();
-    list.latest = JSON.parse(fs.readFileSync(filesFolder + req.params.gameName + '/' + req.params.modName + "/" + mods[mods.length - 1]));
+    list.latest = JSON.parse(fs.readFileSync(path.join(filesFolder, req.params.gameName, req.params.modName, mods[mods.length - 1])));
     mods.forEach(file => {
         if (path.extname(file) == ".json" && file != "list.json") {
-            rawdata = fs.readFileSync(filesFolder + req.params.gameName + '/' + req.params.modName + "/" + file);
-            let data = JSON.parse(rawdata);
+            let data = ReadJSONFile(filesFolder + req.params.gameName + '/' + req.params.modName + "/" + file);
             list.files.push(data);
         }
     })
@@ -37,3 +36,8 @@ app.get('/game/:gameName/mod/:modName', function (req, res) {
 })
 
 app.listen(port, () => console.log(`Serving files on ${port}!`))
+
+function ReadJSONFile(filename) {
+    rawdata = fs.readFileSync(filename);
+    return JSON.parse(rawdata);
+}

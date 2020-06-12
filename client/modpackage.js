@@ -5,8 +5,8 @@ let http = require('http');
 let fs = require('fs');
 let runargs = process.argv.slice(2);
 const fetch = require('node-fetch');
-let settingsfile = fs.readFileSync(__dirname + "\\settings.json");
-let settings = JSON.parse(settingsfile);
+const path = require('path');
+let settings = ReadJSONFile(path.join(__dirname, 'settings.json'));
 
 
 MainMeal();
@@ -67,4 +67,9 @@ async function GetJson(url) {
     }
 
     return data;
+}
+
+function ReadJSONFile(filename) {
+    rawdata = fs.readFileSync(filename);
+    return JSON.parse(rawdata);
 }
