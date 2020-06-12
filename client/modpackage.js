@@ -40,8 +40,25 @@ async function MainMeal(server) {
                     else {
                     }
                     break;
+                case "config":
+                    if (runargs.length > 3) {
+                        config(runargs[2], runargs[3])
+                    }
+                    else {
+                    }
+                    break;
                 case "clean":
-
+                    if (fs.existsSync(path.join(__dirname, "package"))) {
+                        fs.rmdirSync(path.join(__dirname, "package"), { recursive: true });
+                        fs.mkdirSync(path.join(__dirname, "package"));
+                        fs.mkdirSync(path.join(__dirname, "package", "gamefolder"));
+                        fs.mkdirSync(path.join(__dirname, "package", "modfolder"));
+                    }
+                    else {
+                        fs.mkdirSync(path.join(__dirname, "package"));
+                        fs.mkdirSync(path.join(__dirname, "package", "gamefolder"));
+                        fs.mkdirSync(path.join(__dirname, "package", "modfolder"));
+                    }
                     break;
 
                 default:
@@ -66,7 +83,7 @@ function remove(parameter1, parameter2, parameter3) {
     // code to be executed
 }
 
-function pack(name, version) {
+function config(name, version) {
     let packfile = {
         "modname": name,
         "version": version,
@@ -90,11 +107,20 @@ function pack(name, version) {
 
     console.log(packfile);
     WriteJSONFile(path.join(__dirname, "package", packfile.modname + "-" + packfile.version + ".json"), packfile);
+}
 
+function pack(name, version) {
+    process.chdir(path.join(__dirname, "package"))
+    let packfile = ReadJSONFile(path.join(__dirname, "package", name + "-" + version + ".json"));
     const seven = Seven.add(path.join(__dirname, "package", packfile.modname + "-" + packfile.version + '.7z'), '*.*', {
         $bin: pathTo7zip,
         recursive: true
     });
+
+    seven.on('end', function () {
+        console.log("archive done")
+    })
+
 }
 
 function download(url, filename) {
