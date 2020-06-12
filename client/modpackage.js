@@ -7,30 +7,51 @@ let fs = require('fs');
 let runargs = process.argv.slice(2);
 const fetch = require('node-fetch');
 const path = require('path');
-
 let settings = ReadJSONFile(path.join(__dirname, 'settings.json'));
-
 
 MainMeal();
 async function MainMeal(server) {
     console.log("Running ModPackage");
     switch (runargs[0]) {
+        case "i":
         case "install":
             serverjson = await GetJson(BuildURL(settings.serverurl, "game", runargs[1], "mod", runargs[2]));
             if (serverjson.status == 200) {
+                if (serverjson.game == "" || serverjson.name == "") {
+                    serverjson.game = runargs[1];
+                    serverjson.name = runargs[2];
+                }
                 console.log(serverjson.latest.filename);
                 install(serverjson);
             }
             else {
-                console.log("nothing there");
+                console.log("mod or game does not exist");
             }
             break;
+        case "d":
+        case "download":
+            serverjson = await GetJson(BuildURL(settings.serverurl, "game", runargs[1], "mod", runargs[2]));
+            if (serverjson.status == 200) {
+                if (serverjson.game == "" || serverjson.name == "") {
+                    serverjson.game = runargs[1];
+                    serverjson.name = runargs[2];
+                }
+                console.log(serverjson.latest.filename);
+                download(serverjson);
+            }
+            else {
+                console.log("mod or game does not exist");
+            }
+            break;
+        case "u":
         case "update":
 
             break;
+        case "r":
         case "remove":
 
             break;
+        case "p":
         case "package":
             switch (runargs[1]) {
                 case "make":
@@ -53,15 +74,18 @@ async function MainMeal(server) {
                         fs.mkdirSync(path.join(__dirname, "package"));
                         fs.mkdirSync(path.join(__dirname, "package", "gamefolder"));
                         fs.mkdirSync(path.join(__dirname, "package", "modfolder"));
+                        console.log("package folder created")
                     }
                     else {
                         fs.mkdirSync(path.join(__dirname, "package"));
                         fs.mkdirSync(path.join(__dirname, "package", "gamefolder"));
                         fs.mkdirSync(path.join(__dirname, "package", "modfolder"));
+                        console.log("package folder created, aditional folders can be created")
                     }
                     break;
 
                 default:
+                    console.log("invalid")
                     break;
             }
             break;
@@ -71,23 +95,47 @@ async function MainMeal(server) {
 }
 
 function install(serverjson) {
-    download(BuildURL(settings.serverurl, "files", runargs[1], runargs[2], serverjson.latest.filename), path.join(__dirname, "download", serverjson.latest.filename));
+    let jsoninstalled = ReadJSONFile(path.join(__dirname, "installed.json"));
+    console.log(serverjson);
+    if (serverjson.dependency == undefined) {
+        const myStream = Seven.extractFull(path.join(__dirname, "download", serverjson.latest.filename), path.join(__dirname, "download", serverjson.latest.modname), {
+            $bin: pathTo7zip,
+            $progress: true
+        })
+    }
+}
 
+async function download(serverjson) {
+    let jsoninstalled = ReadJSONFile(path.join(__dirname, "installed.json"));
+    if (serverjson.dependency == undefined) {
+        if (!fs.existsSync(path.join(__dirname, "download", serverjson.game))) {
+            fs.mkdirSync(path.join(__dirname, "download", serverjson.game));
+        }
+        GetDownload(BuildURL(settings.serverurl, "files", serverjson.game, serverjson.name, serverjson.latest.filename), path.join(__dirname, "download", serverjson.game, serverjson.latest.filename));
+        if (jsoninstalled.downloads[serverjson.game]) {
+            jsoninstalled.downloads[serverjson.game].push(serverjson.latest);
+        }
+        else {
+            jsoninstalled.downloads.push(serverjson.game, "");
+            jsoninstalled.downloads[serverjson.game].push(serverjson.latest);
+        }
+        WriteJSONFile("installed.json", jsoninstalled);
+    }
 }
 
 function update(parameter1, parameter2, parameter3) {
-    // code to be executed
+    let jsoninstalled = ReadJSONFile(path.join(__dirname, "installed.json"));
 }
 
 function remove(parameter1, parameter2, parameter3) {
-    // code to be executed
+    let jsoninstalled = ReadJSONFile(path.join(__dirname, "installed.json"));
 }
 
 function config(name, version) {
     let packfile = {
         "modname": name,
         "version": version,
-        "filename": name + ".7z",
+        "filename": name + "-" + version + ".7z",
         "description": "",
         "dependency": [],
         "date": "",
@@ -123,9 +171,9 @@ function pack(name, version) {
 
 }
 
-function download(url, filename) {
+function GetDownload(url, filename) {
     var file = fs.createWriteStream(filename);
-    var request = http.get(url, function (response) {
+    http.get(url, function (response) {
         response.pipe(file);
     });
 }
@@ -155,6 +203,5 @@ function WriteJSONFile(filename, json) {
 }
 
 function BuildURL() {
-    console.log(arguments);
     return Array.prototype.join.call(arguments, '/');
 }
